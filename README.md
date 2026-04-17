@@ -4,6 +4,14 @@ An intelligent incident response system that automatically investigates, correla
 
 ## Architecture
 
+### LangGraph Workflow
+
+![Incident Analysis Workflow](docs/incident-analysis-workflow.png)
+
+*To regenerate this diagram, run: `python generate_graph_image.py`*
+
+### High-Level Flow
+
 ```
 User / Alert Trigger
         ↓
@@ -71,6 +79,7 @@ GET http://127.0.0.1:8000/incident
 incident-ai/
 ├── app/
 │   ├── main.py
+│   ├── graph.py
 │   ├── agents/
 │   │     ├── commander.py
 │   │     ├── metrics_agent.py
@@ -85,6 +94,9 @@ incident-ai/
 │   │     └── deploy.json
 │   └── utils/
 │       └── report_generator.py
+├── docs/
+│   └── incident-analysis-workflow.png
+├── generate_graph_image.py
 ├── venv/
 ├── README.md
 └── .git/
