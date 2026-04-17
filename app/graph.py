@@ -2,7 +2,7 @@ import os
 from typing import List, Dict, Any
 from pydantic import BaseModel
 from langchain_groq import ChatGroq
-from langgraph import StateGraph, END
+from langgraph.graph import StateGraph, END
 from dotenv import load_dotenv
 
 load_dotenv()
