@@ -1,8 +1,38 @@
 [
   {
+    "timestamp": "10:05",
+    "level": "INFO",
+    "message": "Application startup initiated"
+  },
+  {
+    "timestamp": "10:06",
+    "level": "INFO",
+    "message": "Database connection established"
+  },
+  {
+    "timestamp": "10:07",
+    "level": "INFO",
+    "message": "Cache service initialized"
+  },
+  {
+    "timestamp": "10:08",
+    "level": "WARN",
+    "message": "Memory usage approaching threshold"
+  },
+  {
+    "timestamp": "10:09",
+    "level": "INFO",
+    "message": "Health check passed"
+  },
+  {
     "timestamp": "10:10",
     "level": "INFO",
     "message": "Service started successfully"
+  },
+  {
+    "timestamp": "10:11",
+    "level": "WARN",
+    "message": "Slow query detected"
   },
   {
     "timestamp": "10:12",
@@ -38,5 +68,15 @@
     "timestamp": "10:18",
     "level": "INFO",
     "message": "Service recovered"
+  },
+  {
+    "timestamp": "10:19",
+    "level": "INFO",
+    "message": "System health restored"
+  },
+  {
+    "timestamp": "10:20",
+    "level": "INFO",
+    "message": "Monitoring alerts cleared"
   }
 ]

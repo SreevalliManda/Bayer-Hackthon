@@ -1,9 +1,39 @@
 [
   {
     "service": "checkout",
+    "deployment_time": "08:00",
+    "change": "Initial deployment",
+    "version": "1.0.0"
+  },
+  {
+    "service": "checkout",
+    "deployment_time": "08:30",
+    "change": "Bug fix for payment processing",
+    "version": "1.0.1"
+  },
+  {
+    "service": "payment",
+    "deployment_time": "09:00",
+    "change": "Added payment validation",
+    "version": "2.0.0"
+  },
+  {
+    "service": "checkout",
+    "deployment_time": "09:15",
+    "change": "UI improvements",
+    "version": "1.1.0"
+  },
+  {
+    "service": "checkout",
     "deployment_time": "09:30",
     "change": "Code update v1.2 - added caching",
     "version": "1.2.0"
+  },
+  {
+    "service": "payment",
+    "deployment_time": "09:45",
+    "change": "Security patch applied",
+    "version": "2.1.0"
   },
   {
     "service": "checkout",
@@ -12,9 +42,15 @@
     "version": "1.2.1"
   },
   {
-    "service": "payment",
-    "deployment_time": "09:45",
-    "change": "Security patch applied",
-    "version": "2.1.0"
+    "service": "user-service",
+    "deployment_time": "10:10",
+    "change": "New user authentication features",
+    "version": "3.0.0"
+  },
+  {
+    "service": "checkout",
+    "deployment_time": "10:20",
+    "change": "Rollback to previous version",
+    "version": "1.2.0"
   }
 ]
