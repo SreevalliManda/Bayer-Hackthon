@@ -1,5 +1,20 @@
-{
-  "service": "checkout",
-  "deployment_time": "10:00",
-  "change": "DB config updated"
-}
+[
+  {
+    "service": "checkout",
+    "deployment_time": "09:30",
+    "change": "Code update v1.2 - added caching",
+    "version": "1.2.0"
+  },
+  {
+    "service": "checkout",
+    "deployment_time": "10:00",
+    "change": "DB config updated - connection pool increased",
+    "version": "1.2.1"
+  },
+  {
+    "service": "payment",
+    "deployment_time": "09:45",
+    "change": "Security patch applied",
+    "version": "2.1.0"
+  }
+]

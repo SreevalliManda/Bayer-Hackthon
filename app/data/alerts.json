@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": "10:15",
+    "alert_type": "latency_spike",
+    "service": "checkout",
+    "severity": "high",
+    "description": "Latency exceeded 1000ms threshold"
+  },
+  {
+    "timestamp": "10:16",
+    "alert_type": "error_rate",
+    "service": "checkout",
+    "severity": "critical",
+    "description": "Error rate above 5%"
+  },
+  {
+    "timestamp": "10:17",
+    "alert_type": "service_down",
+    "service": "checkout",
+    "severity": "critical",
+    "description": "Service became unresponsive"
+  }
+]

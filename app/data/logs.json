@@ -1,10 +1,42 @@
 [
   {
+    "timestamp": "10:10",
+    "level": "INFO",
+    "message": "Service started successfully"
+  },
+  {
+    "timestamp": "10:12",
+    "level": "WARN",
+    "message": "High memory usage detected"
+  },
+  {
+    "timestamp": "10:13",
+    "level": "ERROR",
+    "message": "Failed to connect to cache"
+  },
+  {
     "timestamp": "10:14",
-    "error": "DB connection timeout"
+    "level": "ERROR",
+    "message": "DB connection timeout"
   },
   {
     "timestamp": "10:15",
-    "error": "DB connection timeout"
+    "level": "ERROR",
+    "message": "DB connection timeout"
+  },
+  {
+    "timestamp": "10:16",
+    "level": "ERROR",
+    "message": "DB connection timeout - retry failed"
+  },
+  {
+    "timestamp": "10:17",
+    "level": "CRITICAL",
+    "message": "Service unresponsive"
+  },
+  {
+    "timestamp": "10:18",
+    "level": "INFO",
+    "message": "Service recovered"
   }
 ]
