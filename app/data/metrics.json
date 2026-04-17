@@ -1,0 +1,107 @@
+[
+  {
+    "timestamp": "10:05",
+    "latency_ms": 120,
+    "cpu": 55,
+    "memory": 65,
+    "requests_per_sec": 1100
+  },
+  {
+    "timestamp": "10:06",
+    "latency_ms": 130,
+    "cpu": 58,
+    "memory": 68,
+    "requests_per_sec": 1150
+  },
+  {
+    "timestamp": "10:07",
+    "latency_ms": 140,
+    "cpu": 60,
+    "memory": 70,
+    "requests_per_sec": 1180
+  },
+  {
+    "timestamp": "10:08",
+    "latency_ms": 135,
+    "cpu": 57,
+    "memory": 67,
+    "requests_per_sec": 1120
+  },
+  {
+    "timestamp": "10:09",
+    "latency_ms": 145,
+    "cpu": 62,
+    "memory": 72,
+    "requests_per_sec": 1200
+  },
+  {
+    "timestamp": "10:10",
+    "latency_ms": 150,
+    "cpu": 60,
+    "memory": 70,
+    "requests_per_sec": 1200
+  },
+  {
+    "timestamp": "10:11",
+    "latency_ms": 160,
+    "cpu": 63,
+    "memory": 73,
+    "requests_per_sec": 1220
+  },
+  {
+    "timestamp": "10:12",
+    "latency_ms": 180,
+    "cpu": 65,
+    "memory": 75,
+    "requests_per_sec": 1300
+  },
+  {
+    "timestamp": "10:13",
+    "latency_ms": 200,
+    "cpu": 68,
+    "memory": 78,
+    "requests_per_sec": 1350
+  },
+  {
+    "timestamp": "10:14",
+    "latency_ms": 220,
+    "cpu": 70,
+    "memory": 80,
+    "requests_per_sec": 1400
+  },
+  {
+    "timestamp": "10:15",
+    "latency_ms": 2000,
+    "cpu": 85,
+    "memory": 90,
+    "requests_per_sec": 800
+  },
+  {
+    "timestamp": "10:16",
+    "latency_ms": 2500,
+    "cpu": 90,
+    "memory": 95,
+    "requests_per_sec": 600
+  },
+  {
+    "timestamp": "10:17",
+    "latency_ms": 1800,
+    "cpu": 88,
+    "memory": 92,
+    "requests_per_sec": 700
+  },
+  {
+    "timestamp": "10:18",
+    "latency_ms": 200,
+    "cpu": 68,
+    "memory": 78,
+    "requests_per_sec": 1250
+  },
+  {
+    "timestamp": "10:19",
+    "latency_ms": 150,
+    "cpu": 62,
+    "memory": 72,
+    "requests_per_sec": 1180
+  }
+]

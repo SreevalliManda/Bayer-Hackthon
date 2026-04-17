@@ -1,0 +1,65 @@
+[
+  {
+    "timestamp": "10:08",
+    "alert_type": "memory_warning",
+    "service": "checkout",
+    "severity": "medium",
+    "description": "Memory usage above 70%"
+  },
+  {
+    "timestamp": "10:12",
+    "alert_type": "cpu_warning",
+    "service": "checkout",
+    "severity": "medium",
+    "description": "CPU usage above 65%"
+  },
+  {
+    "timestamp": "10:13",
+    "alert_type": "cache_failure",
+    "service": "checkout",
+    "severity": "high",
+    "description": "Cache connection failed"
+  },
+  {
+    "timestamp": "10:14",
+    "alert_type": "db_timeout",
+    "service": "checkout",
+    "severity": "high",
+    "description": "Database connection timeout detected"
+  },
+  {
+    "timestamp": "10:15",
+    "alert_type": "latency_spike",
+    "service": "checkout",
+    "severity": "high",
+    "description": "Latency exceeded 1000ms threshold"
+  },
+  {
+    "timestamp": "10:16",
+    "alert_type": "error_rate",
+    "service": "checkout",
+    "severity": "critical",
+    "description": "Error rate above 5%"
+  },
+  {
+    "timestamp": "10:17",
+    "alert_type": "service_down",
+    "service": "checkout",
+    "severity": "critical",
+    "description": "Service became unresponsive"
+  },
+  {
+    "timestamp": "10:18",
+    "alert_type": "recovery",
+    "service": "checkout",
+    "severity": "info",
+    "description": "Service recovered from outage"
+  },
+  {
+    "timestamp": "10:19",
+    "alert_type": "health_check",
+    "service": "checkout",
+    "severity": "info",
+    "description": "All systems operational"
+  }
+]
