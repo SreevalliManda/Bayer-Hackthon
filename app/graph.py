@@ -7,12 +7,26 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Initialize Groq LLM
-model_name = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
-llm = ChatGroq(
-    model=model_name,
-    api_key=os.getenv("GROQ_API_KEY")
-)
+# Initialize Groq LLM configuration
+DEFAULT_GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+AGENT_MODEL_OVERRIDES = {
+    "commander_agent": os.getenv("GROQ_MODEL_COMMANDER"),
+    "logs_agent": os.getenv("GROQ_MODEL_LOGS"),
+    "metrics_agent": os.getenv("GROQ_MODEL_METRICS"),
+    "deploy_agent": os.getenv("GROQ_MODEL_DEPLOY"),
+    "commander_correlation_decision": os.getenv("GROQ_MODEL_CORRELATION"),
+    "generate_report": os.getenv("GROQ_MODEL_REPORT")
+}
+
+def get_agent_model(agent_name: str) -> str:
+    return AGENT_MODEL_OVERRIDES.get(agent_name) or DEFAULT_GROQ_MODEL
+
+
+def get_agent_llm(agent_name: str) -> ChatGroq:
+    return ChatGroq(
+        model=get_agent_model(agent_name),
+        api_key=os.getenv("GROQ_API_KEY")
+    )
 
 # Define the state
 class IncidentState(BaseModel):
@@ -83,7 +97,7 @@ def logs_agent(state: IncidentState) -> IncidentState:
         Focus on ERROR and CRITICAL level entries, and identify sequences that suggest problems.
         """
         
-        response = llm.invoke(prompt)
+        response = get_agent_llm("logs_agent").invoke(prompt)
         analysis = response.content
     except Exception as e:
         # Fallback analysis without LLM
@@ -119,7 +133,7 @@ def metrics_agent(state: IncidentState) -> IncidentState:
         Calculate baselines and identify deviations from normal patterns.
         """
         
-        response = llm.invoke(prompt)
+        response = get_agent_llm("metrics_agent").invoke(prompt)
         analysis = response.content
     except Exception as e:
         # Fallback analysis
@@ -159,7 +173,7 @@ def deploy_agent(state: IncidentState) -> IncidentState:
         Consider the chronological relationship between deployments and subsequent errors.
         """
         
-        response = llm.invoke(prompt)
+        response = get_agent_llm("deploy_agent").invoke(prompt)
         analysis = response.content
     except Exception as e:
         # Fallback analysis
@@ -203,7 +217,7 @@ def commander_correlation_decision(state: IncidentState) -> IncidentState:
         - Prevention Measures
         """
         
-        response = llm.invoke(prompt)
+        response = get_agent_llm("commander_correlation_decision").invoke(prompt)
         content = response.content
         
         # Extract confidence from response
@@ -270,7 +284,7 @@ def generate_report(state: IncidentState) -> IncidentState:
     - Prevention Measures
     """
     
-    response = llm.invoke(prompt)
+    response = get_agent_llm("generate_report").invoke(prompt)
     state_data = state.dict()
     state_data["report"] = response.content
     return IncidentState(**state_data)
