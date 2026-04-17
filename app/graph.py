@@ -1,31 +1,25 @@
 import os
 from typing import List, Dict, Any
 from pydantic import BaseModel
-from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Initialize Groq LLM configuration
-DEFAULT_GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
-AGENT_MODEL_OVERRIDES = {
-    "commander_agent": os.getenv("GROQ_MODEL_COMMANDER"),
-    "logs_agent": os.getenv("GROQ_MODEL_LOGS"),
-    "metrics_agent": os.getenv("GROQ_MODEL_METRICS"),
-    "deploy_agent": os.getenv("GROQ_MODEL_DEPLOY"),
-    "commander_correlation_decision": os.getenv("GROQ_MODEL_CORRELATION"),
-    "generate_report": os.getenv("GROQ_MODEL_REPORT")
-}
+# Initialize shared LLM configuration (single model for all agents)
+DEFAULT_LLM_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
 
-def get_agent_model(agent_name: str) -> str:
-    return AGENT_MODEL_OVERRIDES.get(agent_name) or DEFAULT_GROQ_MODEL
+def get_agent_llm(agent_name: str) -> ChatOpenAI:
+    """Return a shared OpenAI-based LLM for all agents.
 
-
-def get_agent_llm(agent_name: str) -> ChatGroq:
-    return ChatGroq(
-        model=get_agent_model(agent_name),
-        api_key=os.getenv("GROQ_API_KEY")
+    The agent_name is accepted for compatibility but ignored because
+    we use a single model for all agents as requested.
+    """
+    return ChatOpenAI(
+        model=DEFAULT_LLM_MODEL,
+        api_key=os.getenv("OPENAI_API_KEY"),
+        temperature=0.0
     )
 
 # Define the state
@@ -46,6 +40,8 @@ class IncidentState(BaseModel):
 # Agent functions
 def commander_agent(state: IncidentState) -> IncidentState:
     """Commander Agent: The Orchestrator - Evaluates alerts, develops plan, coordinates investigation"""
+    if isinstance(state, dict):
+        state = IncidentState(**state)
     alerts = state.alerts_data
     
     # Evaluate alerts and develop investigation plan
@@ -77,10 +73,12 @@ def commander_agent(state: IncidentState) -> IncidentState:
     
     state_data = state.dict()
     state_data["investigation_plan"] = investigation_plan
-    return IncidentState(**state_data)
+    return state_data
 
 def logs_agent(state: IncidentState) -> IncidentState:
     """Logs Agent: The Forensic Expert - Deep-scans logs for stack traces and error correlations"""
+    if isinstance(state, dict):
+        state = IncidentState(**state)
     try:
         prompt = f"""
         You are the Logs Agent - Forensic Expert. Deep-scan these application logs to find specific stack traces and error correlations.
@@ -90,11 +88,16 @@ def logs_agent(state: IncidentState) -> IncidentState:
         Your analysis should include:
         1. Error patterns and frequencies
         2. Stack traces or detailed error information
-        3. Correlations between different error types
+        3. Correlations between different error types (especially DB timeouts with latency spikes)
         4. Timeline of error progression
         5. Any repeated or escalating issues
+        6. SPECIAL ATTENTION: DB connection timeouts often indicate connection pool exhaustion
         
         Focus on ERROR and CRITICAL level entries, and identify sequences that suggest problems.
+        Look for patterns like:
+        - Repeated "DB connection timeout" errors within short windows (5-10 minutes)
+        - Timeout escalation (timeouts increasing in frequency/severity)
+        - Service becoming unresponsive after timeout cascade
         """
         
         response = get_agent_llm("logs_agent").invoke(prompt)
@@ -112,10 +115,12 @@ def logs_agent(state: IncidentState) -> IncidentState:
     
     state_data = state.dict()
     state_data["logs_analysis"] = analysis
-    return IncidentState(**state_data)
+    return state_data
 
 def metrics_agent(state: IncidentState) -> IncidentState:
     """Metrics Agent: The Telemetry Analyst - Monitors performance counters for anomalies"""
+    if isinstance(state, dict):
+        state = IncidentState(**state)
     try:
         prompt = f"""
         You are the Metrics Agent - Telemetry Analyst. Monitor these performance counters to spot anomalies.
@@ -123,14 +128,17 @@ def metrics_agent(state: IncidentState) -> IncidentState:
         Metrics Data: {state.metrics_data}
         
         Analyze for:
-        1. Latency spikes (p99 patterns)
-        2. High CPU usage patterns
-        3. Memory leak indicators
-        4. Request rate anomalies
+        1. Latency spikes (p99 patterns) - especially those exceeding 1000ms threshold
+        2. High CPU usage patterns and correlation with latency
+        3. Memory leak indicators or sustained high memory usage
+        4. Request rate anomalies - sudden drops in throughput with latency spikes
         5. Performance degradation trends
+        6. CRITICAL: Look for sudden latency spikes (e.g., 120ms baseline → 2000ms+)
         
         Provide detailed analysis of any anomalies found, including timestamps, severity, and potential causes.
         Calculate baselines and identify deviations from normal patterns.
+        
+        IMPORTANT PATTERN: If latency spike is followed by request rate drop, indicates system under stress or connections exhausted.
         """
         
         response = get_agent_llm("metrics_agent").invoke(prompt)
@@ -145,6 +153,7 @@ def metrics_agent(state: IncidentState) -> IncidentState:
             Data Points: {len(state.metrics_data)}
             Max Latency: {max_latency}ms
             Anomalies Detected: {'Yes' if max_latency > 1000 else 'No'}
+            Latency Spike Pattern: {'Detected - suggests resource exhaustion' if max_latency > 1500 else 'Normal'}
             Note: LLM analysis unavailable, using basic threshold detection.
             """
         else:
@@ -152,23 +161,29 @@ def metrics_agent(state: IncidentState) -> IncidentState:
     
     state_data = state.dict()
     state_data["metrics_analysis"] = analysis
-    return IncidentState(**state_data)
+    return state_data
 
 def deploy_agent(state: IncidentState) -> IncidentState:
     """Deploy Intelligence Agent: The Historian - Maps errors against deployment timeline"""
+    if isinstance(state, dict):
+        state = IncidentState(**state)
     try:
         prompt = f"""
         You are the Deploy Intelligence Agent - Historian. Map real-time errors against the timeline of CI/CD deployments.
         
         Deployment Data: {state.deploy_data}
         Alert Timeline: {state.alerts_data}
+        Logs Data: {state.logs_data}
         
         Your analysis should:
-        1. Identify recent deployments and configuration changes
-        2. Correlate error occurrences with deployment timing
-        3. Map specific errors to deployment changes
-        4. Identify potential causal relationships
-        5. Flag deployments that may have introduced issues
+        1. Identify recent deployments and configuration changes (especially DB config, connection pools, timeouts)
+        2. Correlate error occurrences with deployment timing (look for 5-20 minute lag)
+        3. Map specific errors to deployment changes (e.g., DB timeouts after DB config update)
+        4. Identify potential causal relationships - configuration bugs often manifest gradually
+        5. Flag deployments that may have introduced issues, especially config/infrastructure changes
+        6. Consider "latent bugs" - configurations that work initially then fail under load
+        
+        CRITICAL: Look for DB connection pool changes correlated with DB timeout errors.
         
         Consider the chronological relationship between deployments and subsequent errors.
         """
@@ -187,10 +202,12 @@ def deploy_agent(state: IncidentState) -> IncidentState:
     
     state_data = state.dict()
     state_data["deploy_analysis"] = analysis
-    return IncidentState(**state_data)
+    return state_data
 
 def commander_correlation_decision(state: IncidentState) -> IncidentState:
     """Commander Agent: Correlate findings and make final decisions"""
+    if isinstance(state, dict):
+        state = IncidentState(**state)
     try:
         prompt = f"""
         You are the Commander Agent completing the investigation. Correlate all findings and make final decisions.
@@ -204,17 +221,22 @@ def commander_correlation_decision(state: IncidentState) -> IncidentState:
         
         Your tasks:
         1. CORRELATE findings across all agents to identify relationships
-        2. DETERMINE root cause based on evidence
-        3. PROVIDE specific recommendations and actions
+        2. DETERMINE root cause based on evidence (prioritize deployment/config changes correlated with errors)
+        3. PROVIDE specific recommendations and actions:
+           - If DB config change detected before DB timeouts: RECOMMEND IMMEDIATE ROLLBACK
+           - If latency spike follows config deployment: CONSIDER CONFIGURATION BUG
+           - If errors resolve after rollback: CONFIRM ROOT CAUSE
         4. ASSIGN confidence level (0-100%) to your assessment
-        5. IDENTIFY prevention measures
+        5. IDENTIFY prevention measures (configuration testing, staged rollouts)
+        
+        SPECIAL FOCUS: Latent configuration bugs that manifest 5-20 minutes after deployment.
         
         Structure your response with clear sections:
         - Correlation Analysis
-        - Root Cause Determination  
-        - Recommended Actions
+        - Root Cause Determination (include deployment correlation)
+        - Recommended Actions (include rollback if applicable)
         - Confidence Level
-        - Prevention Measures
+        - Prevention Measures (focus on config validation and staged deployment)
         """
         
         response = get_agent_llm("commander_correlation_decision").invoke(prompt)
@@ -241,18 +263,21 @@ def commander_correlation_decision(state: IncidentState) -> IncidentState:
         
         Root Cause Determination:
         Based on pattern analysis, likely related to recent system changes or performance issues.
+        If DB config deployment detected before DB timeouts, this suggests a LATENT CONFIGURATION BUG.
         
         Recommended Actions:
-        1. Review recent deployments for potential issues
-        2. Monitor system performance metrics
-        3. Check application logs for error patterns
+        1. IMMEDIATE: Review recent configuration deployments (especially DB connection pool settings)
+        2. If config change suspected: EXECUTE ROLLBACK to previous version
+        3. Monitor system performance metrics
+        4. Check application logs for error patterns
         
         Confidence Level: 50%
         
         Prevention Measures:
-        - Implement automated monitoring alerts
-        - Regular deployment validation
-        - Performance baseline monitoring
+        - Implement configuration validation before deployment
+        - Use staged rollout for infrastructure changes
+        - Test connection pool settings under load before production
+        - Automatic rollback on critical alerts
         
         Note: LLM analysis unavailable, using rule-based correlation.
         """
@@ -261,10 +286,12 @@ def commander_correlation_decision(state: IncidentState) -> IncidentState:
     state_data["correlation"] = "Correlation and decision analysis completed by Commander Agent"
     state_data["decision"] = decision
     state_data["confidence"] = confidence
-    return IncidentState(**state_data)
+    return state_data
 
 def generate_report(state: IncidentState) -> IncidentState:
     """Generate final incident report"""
+    if isinstance(state, dict):
+        state = IncidentState(**state)
     prompt = f"""
     Generate a comprehensive incident report based on the Commander Agent's complete investigation:
     
@@ -287,7 +314,7 @@ def generate_report(state: IncidentState) -> IncidentState:
     response = get_agent_llm("generate_report").invoke(prompt)
     state_data = state.dict()
     state_data["report"] = response.content
-    return IncidentState(**state_data)
+    return state_data
 
 # Build the graph with 4 agents (sequential to avoid concurrent update issues)
 def create_incident_graph():

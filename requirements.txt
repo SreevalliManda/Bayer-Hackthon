@@ -1,7 +1,12 @@
 fastapi
 uvicorn
 langchain
-langchain-groq
+langchain-openai
 langgraph
 pydantic
 python-dotenv
+python-docx
+streamlit
+plotly
+requests
+networkx
