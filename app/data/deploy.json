@@ -1,0 +1,5 @@
+{
+  "service": "checkout",
+  "deployment_time": "10:00",
+  "change": "DB config updated"
+}

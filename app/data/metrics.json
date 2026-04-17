@@ -1,0 +1,6 @@
+{
+  "service": "checkout",
+  "latency_ms": 2000,
+  "cpu": 85,
+  "timestamp": "10:15"
+}
