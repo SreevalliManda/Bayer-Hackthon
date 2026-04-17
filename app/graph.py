@@ -20,6 +20,7 @@ class IncidentState(BaseModel):
     logs_data: List[Dict[str, Any]]
     deploy_data: List[Dict[str, Any]]
     alerts_data: List[Dict[str, Any]]
+    investigation_plan: str = ""
     metrics_analysis: str = ""
     logs_analysis: str = ""
     deploy_analysis: str = ""
@@ -29,33 +30,56 @@ class IncidentState(BaseModel):
     report: str = ""
 
 # Agent functions
-def start_analysis(state: IncidentState) -> IncidentState:
-    """Entry point that starts parallel analysis"""
-    return state
-
-def metrics_agent(state: IncidentState) -> IncidentState:
-    """Analyze metrics data using LLM"""
-    prompt = f"""
-    Analyze the following metrics data for anomalies. Look for spikes in latency, high CPU/memory usage, or drops in requests per second.
-    Data: {state.metrics_data}
+def commander_agent(state: IncidentState) -> IncidentState:
+    """Commander Agent: The Orchestrator - Evaluates alerts, develops plan, coordinates investigation"""
+    alerts = state.alerts_data
     
-    Provide a detailed analysis of any anomalies found, including timestamps and severity.
-    If no anomalies, state that the metrics appear normal.
+    # Evaluate alerts and develop investigation plan
+    critical_alerts = [a for a in alerts if a.get('severity') == 'critical']
+    high_alerts = [a for a in alerts if a.get('severity') == 'high']
+    
+    if critical_alerts:
+        priority = "CRITICAL - Full investigation required"
+        focus = "All systems: metrics, logs, and deployments"
+    elif high_alerts:
+        priority = "HIGH - Targeted investigation needed"
+        alert_types = set(a.get('alert_type', '') for a in high_alerts)
+        if 'db_timeout' in alert_types or 'latency_spike' in alert_types:
+            focus = "Focus on database performance, logs, and recent deployments"
+        else:
+            focus = "Focus on metrics and logs"
+    else:
+        priority = "MEDIUM - Monitor and investigate metrics"
+        focus = "Primary focus on performance metrics"
+    
+    investigation_plan = f"""
+    INVESTIGATION PLAN:
+    Priority Level: {priority}
+    Focus Areas: {focus}
+    Alert Timeline: {', '.join([f"{a.get('timestamp', '')}: {a.get('description', '')}" for a in sorted(alerts, key=lambda x: x.get('timestamp', ''))])}
+    
+    Coordinating specialized investigators based on alert analysis.
     """
     
-    response = llm.invoke(prompt)
     state_data = state.dict()
-    state_data["metrics_analysis"] = response.content
+    state_data["investigation_plan"] = investigation_plan
     return IncidentState(**state_data)
 
 def logs_agent(state: IncidentState) -> IncidentState:
-    """Analyze logs data using LLM"""
+    """Logs Agent: The Forensic Expert - Deep-scans logs for stack traces and error correlations"""
     prompt = f"""
-    Analyze the following log entries for errors, warnings, and patterns that might indicate issues.
-    Data: {state.logs_data}
+    You are the Logs Agent - Forensic Expert. Deep-scan these application logs to find specific stack traces and error correlations.
     
-    Identify any error patterns, critical issues, or sequences that suggest problems.
-    Focus on ERROR and CRITICAL level logs, and look for repeated issues.
+    Logs Data: {state.logs_data}
+    
+    Your analysis should include:
+    1. Error patterns and frequencies
+    2. Stack traces or detailed error information
+    3. Correlations between different error types
+    4. Timeline of error progression
+    5. Any repeated or escalating issues
+    
+    Focus on ERROR and CRITICAL level entries, and identify sequences that suggest problems.
     """
     
     response = llm.invoke(prompt)
@@ -63,14 +87,45 @@ def logs_agent(state: IncidentState) -> IncidentState:
     state_data["logs_analysis"] = response.content
     return IncidentState(**state_data)
 
-def deploy_agent(state: IncidentState) -> IncidentState:
-    """Analyze deployment data using LLM"""
+def metrics_agent(state: IncidentState) -> IncidentState:
+    """Metrics Agent: The Telemetry Analyst - Monitors performance counters for anomalies"""
     prompt = f"""
-    Analyze the following deployment history to identify recent changes that might be related to issues.
-    Data: {state.deploy_data}
+    You are the Metrics Agent - Telemetry Analyst. Monitor these performance counters to spot anomalies.
     
-    Look for recent deployments, configuration changes, or version updates that could impact system stability.
-    Consider the timing of deployments relative to potential incidents.
+    Metrics Data: {state.metrics_data}
+    
+    Analyze for:
+    1. Latency spikes (p99 patterns)
+    2. High CPU usage patterns
+    3. Memory leak indicators
+    4. Request rate anomalies
+    5. Performance degradation trends
+    
+    Provide detailed analysis of any anomalies found, including timestamps, severity, and potential causes.
+    Calculate baselines and identify deviations from normal patterns.
+    """
+    
+    response = llm.invoke(prompt)
+    state_data = state.dict()
+    state_data["metrics_analysis"] = response.content
+    return IncidentState(**state_data)
+
+def deploy_agent(state: IncidentState) -> IncidentState:
+    """Deploy Intelligence Agent: The Historian - Maps errors against deployment timeline"""
+    prompt = f"""
+    You are the Deploy Intelligence Agent - Historian. Map real-time errors against the timeline of CI/CD deployments.
+    
+    Deployment Data: {state.deploy_data}
+    Alert Timeline: {state.alerts_data}
+    
+    Your analysis should:
+    1. Identify recent deployments and configuration changes
+    2. Correlate error occurrences with deployment timing
+    3. Map specific errors to deployment changes
+    4. Identify potential causal relationships
+    5. Flag deployments that may have introduced issues
+    
+    Consider the chronological relationship between deployments and subsequent errors.
     """
     
     response = llm.invoke(prompt)
@@ -78,78 +133,68 @@ def deploy_agent(state: IncidentState) -> IncidentState:
     state_data["deploy_analysis"] = response.content
     return IncidentState(**state_data)
 
-def correlation_agent(state: IncidentState) -> IncidentState:
-    """Correlate findings from all agents using LLM"""
+def commander_correlation_decision(state: IncidentState) -> IncidentState:
+    """Commander Agent: Correlate findings and make final decisions"""
     prompt = f"""
-    Correlate the following analyses to identify relationships between metrics anomalies, log errors, and recent deployments:
+    You are the Commander Agent completing the investigation. Correlate all findings and make final decisions.
     
-    Metrics Analysis: {state.metrics_analysis}
-    Logs Analysis: {state.logs_analysis}
-    Deployment Analysis: {state.deploy_analysis}
+    Investigation Plan: {state.investigation_plan}
     
-    Determine if these issues are related and what might be the common cause.
-    Provide evidence for your correlation assessment.
-    """
+    Specialized Agent Reports:
+    - Metrics Analysis: {state.metrics_analysis}
+    - Logs Analysis: {state.logs_analysis}
+    - Deploy Analysis: {state.deploy_analysis}
     
-    response = llm.invoke(prompt)
-    state_data = state.dict()
-    state_data["correlation"] = response.content
-    return IncidentState(**state_data)
-
-def decision_agent(state: IncidentState) -> IncidentState:
-    """Make decisions and recommendations using LLM"""
-    prompt = f"""
-    Based on the correlation analysis, determine the root cause of the incident and recommend actions:
+    Your tasks:
+    1. CORRELATE findings across all agents to identify relationships
+    2. DETERMINE root cause based on evidence
+    3. PROVIDE specific recommendations and actions
+    4. ASSIGN confidence level (0-100%) to your assessment
+    5. IDENTIFY prevention measures
     
-    Correlation: {state.correlation}
-    
-    Provide:
-    1. Root cause analysis
-    2. Recommended immediate actions
-    3. Confidence level (0-100%) in your assessment
-    4. Any additional monitoring or preventive measures
-    
-    Format your response clearly with sections.
+    Structure your response with clear sections:
+    - Correlation Analysis
+    - Root Cause Determination  
+    - Recommended Actions
+    - Confidence Level
+    - Prevention Measures
     """
     
     response = llm.invoke(prompt)
     
-    # Parse confidence from response (simple extraction)
+    # Extract confidence from response
     content = response.content
     confidence = 0.0
-    if "confidence" in content.lower():
-        # Extract percentage
-        import re
-        match = re.search(r'(\d+)%', content)
-        if match:
-            confidence = float(match.group(1)) / 100
+    import re
+    match = re.search(r'(\d+)%', content)
+    if match:
+        confidence = float(match.group(1)) / 100
     
     state_data = state.dict()
+    state_data["correlation"] = "Correlation and decision analysis completed by Commander Agent"
     state_data["decision"] = response.content
     state_data["confidence"] = confidence
     return IncidentState(**state_data)
 
-def report_agent(state: IncidentState) -> IncidentState:
-    """Generate final incident report using LLM"""
+def generate_report(state: IncidentState) -> IncidentState:
+    """Generate final incident report"""
     prompt = f"""
-    Generate a comprehensive incident report based on all analyses:
+    Generate a comprehensive incident report based on the Commander Agent's complete investigation:
     
-    Metrics: {state.metrics_analysis}
-    Logs: {state.logs_analysis}
-    Deployments: {state.deploy_analysis}
-    Correlation: {state.correlation}
-    Decision: {state.decision}
-    Confidence: {state.confidence * 100}%
+    Investigation Overview: {state.investigation_plan}
+    Metrics Findings: {state.metrics_analysis}
+    Logs Findings: {state.logs_analysis}
+    Deployment Analysis: {state.deploy_analysis}
+    Commander Decision: {state.decision}
+    Confidence Level: {state.confidence * 100}%
     
-    Create a professional incident report including:
+    Create a professional incident report with:
     - Executive Summary
-    - Timeline of Events
+    - Investigation Timeline
     - Root Cause Analysis
     - Impact Assessment
     - Recommendations
     - Prevention Measures
-    
-    Format as a clear, structured report.
     """
     
     response = llm.invoke(prompt)
@@ -157,31 +202,34 @@ def report_agent(state: IncidentState) -> IncidentState:
     state_data["report"] = response.content
     return IncidentState(**state_data)
 
-# Build the graph
+# Build the graph with 4 agents
 def create_incident_graph():
     graph = StateGraph(IncidentState)
     
-    # Add nodes
-    graph.add_node("start_analysis", start_analysis)
-    graph.add_node("metrics_agent", metrics_agent)
+    # Add nodes - only 4 agents
+    graph.add_node("commander_agent", commander_agent)
     graph.add_node("logs_agent", logs_agent)
+    graph.add_node("metrics_agent", metrics_agent)
     graph.add_node("deploy_agent", deploy_agent)
-    graph.add_node("correlation_agent", correlation_agent)
-    graph.add_node("decision_agent", decision_agent)
-    graph.add_node("report_agent", report_agent)
+    graph.add_node("commander_correlation_decision", commander_correlation_decision)
+    graph.add_node("generate_report", generate_report)
 
-    # Define flow: start -> parallel analysis -> correlation -> decision -> report
-    graph.set_entry_point("start_analysis")
+    # Define flow: Commander starts -> parallel specialized agents -> Commander correlates/decides -> Report
+    graph.set_entry_point("commander_agent")
 
-    # Start all three agents in parallel
-    graph.add_edge("start_analysis", "metrics_agent")
-    graph.add_edge("start_analysis", "logs_agent")
-    graph.add_edge("start_analysis", "deploy_agent")
+    # Commander coordinates the three specialized agents in parallel
+    graph.add_edge("commander_agent", "logs_agent")
+    graph.add_edge("commander_agent", "metrics_agent")
+    graph.add_edge("commander_agent", "deploy_agent")
     
-    # Then decision and report
-    graph.add_edge("correlation_agent", "decision_agent")
-    graph.add_edge("decision_agent", "report_agent")
-    graph.add_edge("report_agent", END)
+    # All three agents feed back to Commander for correlation and decision
+    graph.add_edge("logs_agent", "commander_correlation_decision")
+    graph.add_edge("metrics_agent", "commander_correlation_decision")
+    graph.add_edge("deploy_agent", "commander_correlation_decision")
+    
+    # Final report generation
+    graph.add_edge("commander_correlation_decision", "generate_report")
+    graph.add_edge("generate_report", END)
     
     return graph.compile()
 

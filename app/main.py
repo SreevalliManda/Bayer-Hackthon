@@ -45,6 +45,7 @@ async def handle_incident():
         # Return comprehensive results
         return {
             "status": "success",
+            "investigation_plan": final_state.investigation_plan,
             "analysis": {
                 "metrics_analysis": final_state.metrics_analysis,
                 "logs_analysis": final_state.logs_analysis,
